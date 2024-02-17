@@ -1,1 +1,4 @@
 *.pdf
+/implementaciya/build/
+/implementaciya/sdkconfig
+.cache/
