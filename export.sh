@@ -1,4 +1,5 @@
 # Own modification to the script
+EXTRA_CPPFLAGS='-Wall -Werror'
 export IDF_PATH=/opt/esp-idf
 PS1="$PS1(esp) "
 
