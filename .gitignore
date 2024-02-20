@@ -1,3 +1,4 @@
+*.stl
 *.pdf
 /implementaciya/build/
 /implementaciya/sdkconfig
