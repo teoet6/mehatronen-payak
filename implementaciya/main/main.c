@@ -55,11 +55,17 @@ double calculate_servo_2(double h, double r) {
 	return PI_TIMES_2 - ideal;
 }
 
+void set_update_duty(ledc_mode_t speed_mode, ledc_channel_t channel, uint32_t duty) {
+	ledc_set_duty(speed_mode, channel, duty);
+	ledc_update_duty(speed_mode, channel);
+}
+
+int s0_pins[4] = {21, 25, 14,  4};
+int s1_pins[4] = {22, 33, 12,  2};
+int s2_pins[4] = {23, 32, 13, 15};
+
 void app_main(void)
 {
-	ledc_channel_t channel_a = 0;
-	ledc_channel_t channel_b = 1;
-
 	{
 		ledc_timer_config_t timer_config = {
 			.speed_mode      = LEDC_HIGH_SPEED_MODE,
@@ -71,31 +77,51 @@ void app_main(void)
 		ESP_ERROR_CHECK(ledc_timer_config(&timer_config));
 	}
 
-	ESP_ERROR_CHECK(config_channel(LEDC_HIGH_SPEED_MODE, channel_a, 32));
-	ESP_ERROR_CHECK(config_channel(LEDC_HIGH_SPEED_MODE, channel_b, 14));
+	{
+		ledc_timer_config_t timer_config = {
+			.speed_mode      = LEDC_LOW_SPEED_MODE,
+			.duty_resolution = LEDC_TIMER_20_BIT,
+			.timer_num       = LEDC_TIMER_0,
+			.freq_hz         = 50,
+			.clk_cfg         = LEDC_AUTO_CLK,
+		};
+		ESP_ERROR_CHECK(ledc_timer_config(&timer_config));
+	}
 
-	printf("%f %f\n", calculate_servo_1(0, 20) * 180 / PI, calculate_servo_2(0, 20) * 180 / PI);
+	for (int i = 0; i < 4; i += 1) {
+		ESP_ERROR_CHECK(config_channel(LEDC_LOW_SPEED_MODE, i, s0_pins[i]));
+	}
 
-	double t = 0;
+	for (int i = 0; i < 4; i += 1) {
+		ESP_ERROR_CHECK(config_channel(LEDC_HIGH_SPEED_MODE, i, s1_pins[i]));
+	}
 
-	while (true) {
-		const double s1 = calculate_servo_1(20*sin(t * PI / 2), 24);
-		const double s2 = calculate_servo_2(20*sin(t * PI / 2), 24);
-
-		ledc_set_duty(LEDC_HIGH_SPEED_MODE, channel_a, duty_from_radians(s1));
-		ledc_set_duty(LEDC_HIGH_SPEED_MODE, channel_b, duty_from_radians(s2));
-
-		ledc_update_duty(LEDC_HIGH_SPEED_MODE, channel_a);
-		ledc_update_duty(LEDC_HIGH_SPEED_MODE, channel_b);
-
-		printf("%f: %f %f\n", t, s1 * 180 / PI, s2 * 180 / PI);
-
-		t += 0.01;
-
-		vTaskDelay(10 / portTICK_PERIOD_MS);
+	for (int i = 0; i < 4; i += 1) {
+		ESP_ERROR_CHECK(config_channel(LEDC_HIGH_SPEED_MODE, 4 + i, s2_pins[i]));
 	}
 
 	while (true) {
+		for (int i = 0; i < 4; i += 1) {
+			set_update_duty(LEDC_LOW_SPEED_MODE, i, duty_from_degrees(90));
+		}
+		vTaskDelay(100 / portTICK_PERIOD_MS);
+		for (int i = 0; i < 4; i += 1) {
+			set_update_duty(LEDC_LOW_SPEED_MODE, i, 0);
+		}
+
+		for (int i = 0; i < 4; i += 1) {
+			set_update_duty(LEDC_HIGH_SPEED_MODE, i, duty_from_degrees(50));
+		}
+		for (int i = 0; i < 4; i += 1) {
+			set_update_duty(LEDC_HIGH_SPEED_MODE, i + 4, duty_from_degrees(50));
+		}
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
+		for (int i = 0; i < 4; i += 1) {
+			set_update_duty(LEDC_HIGH_SPEED_MODE, i, 0);
+		}
+		for (int i = 0; i < 4; i += 1) {
+			set_update_duty(LEDC_HIGH_SPEED_MODE, i + 4, 0);
+		}
+		vTaskDelay(100 / portTICK_PERIOD_MS);
 	}
 }
