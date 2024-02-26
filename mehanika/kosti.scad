@@ -16,6 +16,8 @@ servo_center_long  = 22;
 
 width=3.2;
 
+meat = 2.0;
+
 border_size = 3.2;
 
 b2_len = 150;
@@ -26,9 +28,8 @@ b1_len = 150;
 b1_d1 = 30;
 b1_d2 = b2_d1;
 
-b0_len = 50;
-b0_d   = 25;
-b0_width = 35;
+b0_width = servo_center_short + servo_center_long + 3;
+
 b0_support_len = 10;
 
 esp_len = 55;
@@ -107,7 +108,7 @@ module anti_triangles(triangles, lines) {
 
 function vec_norm(p) = p / norm(p);
 
-module bone(l, diams, meat=2.0, triangles=0, line_paddings=[0, 0]) {
+module bone(l, diams, triangles=0, line_paddings=[0, 0]) {
     points = bone_tangents(l, diams);
     
     lines = [
@@ -157,25 +158,27 @@ if (false) bone(b2_len, [b2_d1, b2_d2], triangles=8, line_paddings=[servo_center
 // body
 if (true) linear_extrude(width) {
     difference() {
-        union() {
-            square([esp_len+5, esp_width+5], center=true);
-            for (angle = [45:90:360]) rotate(angle) difference() {
-                union() {
-                    translate([0, -b0_d/2]) square([b0_len, b0_d]);
-                    translate([b0_len, 0]) circle(d=b0_d);
-                }
-                translate([b0_len, 0]) rotate(180) servo();
-            }
-        }
+        r = max(
+            (esp_width/2 + border_size + servo_width/2) / sin(45),
+            (servo_center_long + border_size/2) / cos(45)
+        );
+        
+        echo("Body radius is", r);
+              
+        l = 2 * (max(esp_len/2, r * cos(45) + servo_center_short) + border_size);
+        w = 2 * (r * sin(45) + servo_width/2 + border_size);
+        
+        square([l, w], center=true);
+        
         square([esp_len, esp_width], center=true);
+        
+        for(y = [1, -1], x = [1, -1]) scale([x, y]) translate([-cos(45)*r, sin(45)*r]) servo();
     }
     
     x = esp_len/2 - esp_bolt_d/2;
     y = esp_width/2 - esp_bolt_d/2;
-    for (x_sign = [-1, 1]) for (y_sign = [-1, 1]) translate([x * x_sign, y * y_sign]) difference() {
-        square(esp_bolt_d+2, center=true);
-        //circle(d=esp_bolt_d);
-    }
+
+    for (x_sign = [-1, 1]) for (y_sign = [-1, 1]) translate([x * x_sign, y * y_sign]) square(esp_bolt_d+2, center=true);
 }
 
 // bone 0
@@ -185,10 +188,8 @@ if (false) union() {
         translate([b0_width/2, b1_d1/2+width]) servo_geometric();
     }
 
-    linear_extrude(width) difference() {
-        union() {
-            square([servo_arm_d + width * 2, servo_double_arm_len], center=true);
-        }
+    linear_extrude(meat) difference() {
+        square([servo_arm_d + width * 2, servo_double_arm_len], center=true);
         circle(d=servo_arm_d);
     }
     
