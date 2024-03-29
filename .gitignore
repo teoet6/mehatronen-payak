@@ -1,5 +1,5 @@
 *.stl
-*.pdf
+/dokumentaciya/*.pdf
 /implementaciya/build/
 /implementaciya/sdkconfig
 .cache/
